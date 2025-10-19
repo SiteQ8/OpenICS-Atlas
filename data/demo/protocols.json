@@ -1,0 +1,42 @@
+{
+  "modbus": {
+    "title": "Modbus/TCP",
+    "description": "Legacy master/slave ICS protocol over TCP/502. Commonly found in PLC/RTU communications. No native auth or encryption.",
+    "controls": [
+      "Block TCP/502 at perimeter; allow only via ICS DMZ brokers.",
+      "Use application-layer filtering / protocol whitelisting in conduits.",
+      "Prefer read-only where possible; restrict function codes.",
+      "Broker remote access via jump hosts with MFA and session recording."
+    ]
+  },
+  "dnp3": {
+    "title": "DNP3 / IEC-104",
+    "description": "Telecontrol protocols for utilities (electric/water). Some secure variants exist; base protocols lack modern security features.",
+    "controls": [
+      "Terminate WAN at ICS DMZ with protocol-aware gateways.",
+      "Prefer secure profiles (e.g., DNP3-SA) where supported.",
+      "Enforce IP allowlists and rate limits; disable unused function codes.",
+      "Monitor for unsolicited responses and timing anomalies."
+    ]
+  },
+  "mms": {
+    "title": "MMS / IEC-61850",
+    "description": "Substation automation (GOOSE/MMS). Critical timing and multicast patterns require careful segmentation.",
+    "controls": [
+      "Isolate substation LANs; no direct internet reachability.",
+      "Use ACLs/VDOMs to constrain MMS flows to required peers.",
+      "Log/alert on unexpected MMS services on non-substation hosts.",
+      "Apply strict change control for IED firmware/configs."
+    ]
+  },
+  "enetip": {
+    "title": "EtherNet/IP",
+    "description": "CIP-based industrial protocol commonly used by Rockwell/ODVA ecosystems.",
+    "controls": [
+      "Block UDP/TCP CIP ports at the perimeter; allow only whitelisted peers.",
+      "Disable default/unused services; avoid broadcast domains spanning trust zones.",
+      "Use VLANs and L3.5 firewalls between cells/areas.",
+      "Continuously inventory and basel ine device identities and EDS/firmware."
+    ]
+  }
+}

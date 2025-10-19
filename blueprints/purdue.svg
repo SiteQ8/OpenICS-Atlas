@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="400">
+  <style>
+    .box { fill:#eef2ff; stroke:#6366f1; stroke-width:2; }
+    .label { font: 14px sans-serif; fill:#111827; }
+    .title { font: bold 16px sans-serif; fill:#111827; }
+  </style>
+  <rect x="20" y="20" width="920" height="60" class="box"/><text x="30" y="55" class="title">Level 5: Enterprise (ERP/Email/HR)</text>
+  <rect x="20" y="90" width="920" height="60" class="box"/><text x="30" y="125" class="title">Level 4: Site Business (MES/Historians)</text>
+  <rect x="20" y="160" width="920" height="60" class="box"/><text x="30" y="195" class="title">Level 3.5: ICS DMZ (Brokers, Patch, AV, Jump Hosts)</text>
+  <rect x="20" y="230" width="920" height="60" class="box"/><text x="30" y="265" class="title">Level 3: Operations (SCADA/HMI/Engineering)</text>
+  <rect x="20" y="300" width="920" height="60" class="box"/><text x="30" y="335" class="title">Levels 0–2: Control/Field (PLC/RTU/Sensors/Actuators)</text>
+</svg>
