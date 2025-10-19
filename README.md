@@ -4,8 +4,6 @@
 
 - **Author:** Ali AlEnezi · GitHub: [SiteQ8](https://github.com/SiteQ8) · LinkedIn: [alenizi](https://www.linkedin.com/in/alenizi/)
 - **License:** Apache-2.0
-- **No Discord.** Use GitHub Issues/Discussions.
-- **No third-party courseware.** All text/diagrams are original and vendor-neutral.
 
 ## What is this?
 OpenICS-Atlas helps defenders **visualize internet exposure** of common ICS/OT protocols, connect those findings to **defense blueprints** (Purdue, ICS DMZ, jump hosts), and **export** practical checklists/policies.
