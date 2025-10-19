@@ -3,6 +3,8 @@
 **Map, simulate, and harden ICS exposure — Shodan-aware, vendor-neutral, open source.**
 
 - **Author:** Ali AlEnezi · GitHub: [SiteQ8](https://github.com/SiteQ8) · LinkedIn: [alenizi](https://www.linkedin.com/in/alenizi/)
+- **Use GitHub Issues/Discussions**
+- **Vendor-neutral**
 - **License:** Apache-2.0
 
 ## What is this?
