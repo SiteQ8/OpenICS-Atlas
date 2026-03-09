@@ -5,7 +5,7 @@
 <br>
 
 [![Live Demo](https://img.shields.io/badge/🚀-Live_Demo-f0a500?style=flat-square)](https://siteq8.github.io/OpenICS-Atlas)
-[![Version](https://img.shields.io/badge/version-2.0-00d4ff?style=flat-square)]()
+[![Version](https://img.shields.io/badge/version-2.5-00d4ff?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-Apache_2.0-2ed573?style=flat-square)](LICENSE)
 [![ICS Protocols](https://img.shields.io/badge/protocols-8-ff4757?style=flat-square)]()
 [![Hardening Controls](https://img.shields.io/badge/controls-72-f0a500?style=flat-square)]()
@@ -35,7 +35,7 @@ It runs **entirely offline** with synthetic demo data — or connects to the **S
 
 ---
 
-## ✨ v2.0 Features
+## ✨ v2.5 Features
 
 ### 📡 Interactive Exposure Map
 - World heatmap powered by **Leaflet.js** with dark SCADA-style tile layer
@@ -128,7 +128,7 @@ The Shodan proxy (`/api/shodan`) returns **only aggregated counts** — no host 
 
 ```
 OpenICS-Atlas/
-├── docs/                     # Static GitHub Pages site (v2.0 GUI)
+├── docs/                     # Static GitHub Pages site (v2.5 GUI)
 │   ├── index.html            # Complete standalone app
 │   └── screenshots/          # README assets
 ├── app/                      # Next.js UI (map, protocol pages, blueprints)

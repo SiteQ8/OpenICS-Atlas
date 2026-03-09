@@ -31,3 +31,40 @@
 - iptables/nftables export templates
 - Offline Modbus mock lab
 - Next.js + Tailwind CSS framework
+
+## v2.5.0 — March 2026
+
+### New Features
+- **Login screen** with demo credentials (admin / OpenICS2025)
+- **Analyst role** with read-only access (analyst / ICS@Secure)
+- **Exposure Trend chart** — 12-month line chart (total, Modbus, S7comm)
+- **Asset Inventory** — 12 demo ICS assets (PLCs, RTUs, HMIs, servers, switches)
+  - Asset stats: total, online, vulnerable, unpatched
+  - Full table with ID, name, type, vendor, protocol, Purdue level, status
+- **Threat Intelligence** feed with simulated data
+  - 8 ICS-CERT advisories with severity and dates
+  - 6 known ICS APT groups (CHERNOVITE, ELECTRUM, XENOTIME, SANDWORM, etc.)
+  - Active/inactive status tracking
+- **Risk Matrix** — interactive 5x5 likelihood vs impact grid
+  - Color-coded risk cells (Critical/High/Medium/Low)
+  - Risk distribution bar chart
+  - Risk register with 8 entries (description, L/I scoring, mitigation)
+- **User badge** with logout in header
+- **Toast notifications** for login/actions
+
+### Fixed
+- **Chart.js version** pinned to 4.4.0 (was loading broken version)
+- **Doughnut chart** — fixed responsive sizing, proper container height
+- **Bar chart** (Purdue) — proper destroy/recreate on re-render
+- **Trend chart** — new line chart with fill, proper axis styling
+- **Risk chart** — new bar chart with proper colors
+- All charts use explicit destroy() before recreate to prevent canvas reuse errors
+
+### Improved
+- 7 navigation tabs (was 5): Dashboard, Protocols, Purdue, Assets, Threats, Hardening, Risk
+- Compact styling — smaller padding, tighter grid gaps
+- Protocol pills use shorter class names for performance
+- Login screen with grid background and radial glow
+- Demo credentials shown directly on login with click-to-fill
+- Header shows logged-in user with logout button
+- Map popup now shows risk level per country

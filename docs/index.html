@@ -3,570 +3,628 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="description" content="OpenICS-Atlas v2.0 — Map, simulate, and harden ICS/OT exposure. Shodan-aware, vendor-neutral, open source.">
-<title>OpenICS-Atlas v2.0 — ICS Exposure Mapping</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏭</text></svg>">
+<title>OpenICS-Atlas v2.5 — ICS Exposure Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%23f0a500'/><text x='8' y='12' text-anchor='middle' font-size='9' fill='%230a0e14' font-weight='bold'>IC</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
---bg:#0a0e14;--bg2:#111922;--surface:#151d28;--surface2:#1a2535;
---text:#c8d6e5;--text2:#7a8ea0;--text3:#4a5d70;
---amber:#f0a500;--amber2:#ffc940;--amber-dim:#f0a50012;
---cyan:#00d4ff;--cyan-dim:#00d4ff10;--red:#ff4757;--green:#2ed573;
---border:#1e2d3e;--radius:8px;
---font:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace;
-}
+:root{--bg:#0a0e14;--bg2:#111922;--surface:#151d28;--surface2:#1a2535;--text:#c8d6e5;--text2:#7a8ea0;--text3:#4a5d70;--amber:#f0a500;--amber2:#ffc940;--amber-dim:#f0a50012;--cyan:#00d4ff;--red:#ff4757;--green:#2ed573;--border:#1e2d3e;--radius:8px;--font:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
-
-/* Scanline overlay */
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:9999}
 
-/* Header */
-.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:1000}
+/* ═══ LOGIN SCREEN ═══ */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#login-screen.hidden{display:none}
+.login-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 20%,#f0a50008 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,#00d4ff05 0%,transparent 50%)}
+.login-grid{position:absolute;inset:0;background-image:linear-gradient(#1e2d3e08 1px,transparent 1px),linear-gradient(90deg,#1e2d3e08 1px,transparent 1px);background-size:40px 40px}
+.login-box{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-logo h1{font-family:var(--mono);font-size:1.6rem;font-weight:700;color:var(--amber)}
+.login-logo p{font-size:0.78rem;color:var(--text2);margin-top:4px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-family:var(--mono);font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.login-field input{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:0.85rem;outline:none;transition:border-color .15s}
+.login-field input:focus{border-color:var(--amber)}
+.login-btn{width:100%;padding:12px;background:var(--amber);color:#000;border:none;border-radius:6px;font-family:var(--mono);font-size:0.85rem;font-weight:700;cursor:pointer;transition:background .15s;margin-top:4px}
+.login-btn:hover{background:var(--amber2)}
+.login-error{color:var(--red);font-size:0.75rem;font-family:var(--mono);text-align:center;margin-top:10px;min-height:18px}
+.login-demo{margin-top:20px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px}
+.login-demo-title{font-family:var(--mono);font-size:0.68rem;color:var(--amber);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.login-demo-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-family:var(--mono);font-size:0.78rem}
+.login-demo-row span:first-child{color:var(--text3)}
+.login-demo-row span:last-child{color:var(--text);cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid var(--border);transition:all .15s}
+.login-demo-row span:last-child:hover{border-color:var(--amber);color:var(--amber)}
+.login-version{text-align:center;margin-top:16px;font-family:var(--mono);font-size:0.65rem;color:var(--text3)}
+
+/* ═══ MAIN APP ═══ */
+#app{display:none}
+#app.visible{display:block}
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:1000}
 .header-left{display:flex;align-items:center;gap:12px}
-.logo{font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--amber);letter-spacing:-0.5px}
-.logo-icon{font-size:1.3rem}
-.logo span{color:var(--text2);font-weight:400;font-size:0.78rem;margin-left:6px}
-.header-status{display:flex;align-items:center;gap:6px;font-size:0.7rem;color:var(--green);font-family:var(--mono)}
+.logo{font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--amber)}
+.logo span{color:var(--text3);font-weight:400;font-size:0.72rem;margin-left:6px}
+.header-status{display:flex;align-items:center;gap:6px;font-size:0.68rem;color:var(--green);font-family:var(--mono)}
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.header-nav{display:flex;gap:4px}
-.nav-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:0.72rem;font-weight:500;transition:all .15s}
+.header-right{display:flex;align-items:center;gap:8px}
+.header-nav{display:flex;gap:3px}
+.nav-btn{padding:6px 12px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:0.68rem;font-weight:500;transition:all .15s}
 .nav-btn:hover,.nav-btn.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
-
-.container{max-width:1400px;margin:0 auto;padding:16px}
-
-/* Tabs */
+.user-badge{padding:5px 10px;border-radius:5px;background:var(--surface);border:1px solid var(--border);font-family:var(--mono);font-size:0.68rem;color:var(--text2);cursor:pointer}
+.user-badge:hover{border-color:var(--red);color:var(--red)}
+.container{max-width:1400px;margin:0 auto;padding:14px}
 .page{display:none}.page.active{display:block}
-
-/* Protocol pills */
-.protocol-bar{display:flex;gap:6px;overflow-x:auto;padding:4px 0 16px;scrollbar-width:none}
-.protocol-bar::-webkit-scrollbar{display:none}
-.proto-pill{padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:0.75rem;font-weight:600;transition:all .15s;white-space:nowrap;flex-shrink:0}
-.proto-pill.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
-.proto-pill:hover:not(.active){border-color:var(--cyan);color:var(--cyan)}
-.proto-pill .port{opacity:0.5;font-weight:400;margin-left:4px}
-
-/* Cards */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .15s}
+.proto-bar{display:flex;gap:5px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:none}
+.proto-bar::-webkit-scrollbar{display:none}
+.pill{padding:7px 14px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--mono);font-size:0.72rem;font-weight:600;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.pill.active{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.pill:hover:not(.active){border-color:var(--cyan);color:var(--cyan)}
+.pill .port{opacity:0.5;font-weight:400;margin-left:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;transition:border-color .15s}
 .card:hover{border-color:var(--amber)}
-.card-title{font-family:var(--mono);font-size:0.78rem;font-weight:600;color:var(--amber);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
-.card-value{font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--text)}
-.card-sub{font-size:0.72rem;color:var(--text3);margin-top:2px}
-
-/* Grid layouts */
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.grid-12{display:grid;grid-template-columns:1fr 2fr;gap:12px}
-@media(max-width:900px){.grid-4,.grid-3{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-12{grid-template-columns:1fr}}
-@media(max-width:600px){.grid-4,.grid-3{grid-template-columns:1fr}}
-
-/* Map */
-.map-wrap{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);height:420px;margin-bottom:16px}
+.card-t{font-family:var(--mono);font-size:0.72rem;font-weight:600;color:var(--amber);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.card-v{font-family:var(--mono);font-size:1.8rem;font-weight:700}
+.card-s{font-size:0.68rem;color:var(--text3);margin-top:2px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+@media(max-width:900px){.g4,.g3{grid-template-columns:repeat(2,1fr)}.g2,.g12,.g21{grid-template-columns:1fr}}
+@media(max-width:600px){.g4,.g3{grid-template-columns:1fr}}
+.map-wrap{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);height:380px;margin-bottom:12px}
 .map-wrap .leaflet-container{height:100%;background:var(--bg2)}
 .leaflet-tile{filter:brightness(0.6) invert(1) contrast(1.8) hue-rotate(200deg) saturate(0.3) brightness(0.7)}
-
-/* Tables */
-.data-table{width:100%;font-family:var(--mono);font-size:0.78rem;border-collapse:collapse}
-.data-table th{text-align:left;padding:8px 10px;color:var(--amber);border-bottom:1px solid var(--border);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px}
-.data-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
-.data-table tr:hover td{color:var(--text);background:var(--surface2)}
-.risk-high{color:var(--red)}
-.risk-medium{color:var(--amber)}
-.risk-low{color:var(--green)}
-
-/* Purdue Model */
-.purdue{display:flex;flex-direction:column;gap:3px}
-.purdue-level{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);transition:all .2s;cursor:pointer}
-.purdue-level:hover{border-color:var(--cyan);background:var(--surface2)}
-.purdue-num{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:0.82rem;flex-shrink:0}
-.purdue-l5{background:#ef444420;color:#ef4444;border:1px solid #ef444440}
-.purdue-l4{background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40}
-.purdue-l35{background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640}
-.purdue-l3{background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640}
-.purdue-l2{background:#06b6d420;color:#06b6d4;border:1px solid #06b6d440}
-.purdue-l1{background:#10b98120;color:#10b981;border:1px solid #10b98140}
-.purdue-l0{background:#64748b20;color:#94a3b8;border:1px solid #64748b40}
-.purdue-info{flex:1}
-.purdue-name{font-weight:600;font-size:0.88rem}
-.purdue-desc{font-size:0.75rem;color:var(--text2);margin-top:2px}
-.purdue-tech{font-family:var(--mono);font-size:0.68rem;color:var(--text3);margin-top:4px}
-
+.dtbl{width:100%;font-family:var(--mono);font-size:0.75rem;border-collapse:collapse}
+.dtbl th{text-align:left;padding:7px 8px;color:var(--amber);border-bottom:1px solid var(--border);font-weight:600;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px}
+.dtbl td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text2)}
+.dtbl tr:hover td{color:var(--text);background:var(--surface2)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:0.62rem;font-weight:600}
+.badge-critical{background:#ef444420;color:#ef4444;border:1px solid #ef444430}
+.badge-high{background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b30}
+.badge-medium{background:#3b82f620;color:#3b82f6;border:1px solid #3b82f630}
+.badge-low{background:#10b98120;color:#10b981;border:1px solid #10b98130}
+.sect{font-family:var(--mono);font-size:0.68rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.sect::after{content:'';flex:1;height:1px;background:var(--border)}
+/* Purdue */
+.plevel{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--radius);border:1px solid var(--border);transition:all .15s;margin-bottom:3px}
+.plevel:hover{border-color:var(--cyan);background:var(--surface2)}
+.pnum{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:0.78rem;flex-shrink:0}
+.pl5{background:#ef444418;color:#ef4444;border:1px solid #ef444430}
+.pl4{background:#f59e0b18;color:#f59e0b;border:1px solid #f59e0b30}
+.pl35{background:#8b5cf618;color:#8b5cf6;border:1px solid #8b5cf630}
+.pl3{background:#3b82f618;color:#3b82f6;border:1px solid #3b82f630}
+.pl2{background:#06b6d418;color:#06b6d4;border:1px solid #06b6d430}
+.pl1{background:#10b98118;color:#10b981;border:1px solid #10b98130}
+.pl0{background:#64748b18;color:#94a3b8;border:1px solid #64748b30}
+.pinfo{flex:1}.pname{font-weight:600;font-size:0.85rem}.pdesc{font-size:0.72rem;color:var(--text2);margin-top:2px}.ptech{font-family:var(--mono);font-size:0.65rem;color:var(--text3);margin-top:3px}
 /* Checklist */
-.check-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.85rem}
-.check-item:last-child{border-bottom:none}
-.check-box{width:18px;height:18px;border-radius:4px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;transition:all .15s}
-.check-box.checked{border-color:var(--green);background:var(--green);color:#000}
-.check-text{color:var(--text2)}
-.check-text.done{text-decoration:line-through;opacity:0.5}
-
-/* Progress bar */
-.progress{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
-.progress-fill{height:100%;background:var(--amber);border-radius:3px;transition:width .4s}
-
-/* Badge */
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:0.65rem;font-weight:600}
-.badge-critical{background:#ef444425;color:#ef4444;border:1px solid #ef444440}
-.badge-high{background:#f59e0b25;color:#f59e0b;border:1px solid #f59e0b40}
-.badge-medium{background:#3b82f625;color:#3b82f6;border:1px solid #3b82f640}
-.badge-low{background:#10b98125;color:#10b981;border:1px solid #10b98140}
-
-/* Section */
-.section-title{font-family:var(--mono);font-size:0.72rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px;display:flex;align-items:center;gap:8px}
-.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
-
-/* Footer */
-.footer{text-align:center;padding:24px 16px;font-size:0.72rem;color:var(--text3);border-top:1px solid var(--border);font-family:var(--mono);margin-top:32px}
+.ck{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.82rem}
+.ck:last-child{border-bottom:none}
+.ckb{width:16px;height:16px;border-radius:3px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.65rem;transition:all .12s}
+.ckb.on{border-color:var(--green);background:var(--green);color:#000}
+.ckt{color:var(--text2)}.ckt.done{text-decoration:line-through;opacity:0.4}
+.prog{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog-f{height:100%;background:var(--amber);border-radius:3px;transition:width .3s}
+/* Risk matrix */
+.risk-cell{padding:8px;border-radius:4px;text-align:center;font-family:var(--mono);font-size:0.68rem;font-weight:600;border:1px solid transparent}
+/* Timeline sparkline */
+.spark{display:inline-block;vertical-align:middle}
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 18px;font-family:var(--mono);font-size:0.78rem;color:var(--text);z-index:10001;opacity:0;transform:translateY(20px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+/* Leaflet popup */
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:6px!important;font-family:var(--mono)!important;font-size:0.75rem!important}
+.leaflet-popup-tip{background:var(--surface)!important}
+.footer{text-align:center;padding:20px 16px;font-size:0.68rem;color:var(--text3);border-top:1px solid var(--border);font-family:var(--mono);margin-top:24px}
 .footer a{color:var(--amber);text-decoration:none}
-
-/* Tooltip */
-.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:6px!important;font-family:var(--mono)!important;font-size:0.78rem!important}
-.leaflet-popup-tip{background:var(--surface)!important;border:1px solid var(--border)!important}
 </style>
 </head>
 <body>
-<!-- Header -->
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen">
+    <div class="login-bg"></div>
+    <div class="login-grid"></div>
+    <div class="login-box">
+        <div class="login-logo">
+            <h1>OpenICS-Atlas</h1>
+            <p>ICS / OT Exposure Intelligence Platform</p>
+        </div>
+        <div class="login-field">
+            <label>Username</label>
+            <input type="text" id="login-user" placeholder="Enter username" autocomplete="off">
+        </div>
+        <div class="login-field">
+            <label>Password</label>
+            <input type="password" id="login-pass" placeholder="Enter password">
+        </div>
+        <button class="login-btn" onclick="doLogin()">Sign In</button>
+        <div class="login-error" id="login-error"></div>
+        <div class="login-demo">
+            <div class="login-demo-title">Demo Credentials</div>
+            <div class="login-demo-row"><span>Username:</span> <span onclick="fillDemo()" title="Click to auto-fill">admin</span></div>
+            <div class="login-demo-row"><span>Password:</span> <span onclick="fillDemo()" title="Click to auto-fill">OpenICS2025</span></div>
+            <div style="font-size:0.65rem;color:var(--text3);margin-top:8px;text-align:center">Click credentials to auto-fill — demo mode uses synthetic data</div>
+        </div>
+        <div class="login-version">OpenICS-Atlas v2.5 — Apache-2.0 — @SiteQ8</div>
+    </div>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="app">
 <div class="header">
     <div class="header-left">
-        <div><span class="logo-icon">🏭</span> <span class="logo">OpenICS-Atlas <span>v2.0</span></span></div>
-        <div class="header-status"><span class="status-dot"></span> DEMO MODE — OFFLINE DATA</div>
+        <span class="logo">OpenICS-Atlas <span>v2.5</span></span>
+        <div class="header-status"><span class="status-dot"></span> DEMO MODE</div>
     </div>
-    <div class="header-nav">
-        <button class="nav-btn active" onclick="showPage('map')">📡 Map</button>
-        <button class="nav-btn" onclick="showPage('protocols')">⚡ Protocols</button>
-        <button class="nav-btn" onclick="showPage('purdue')">🏗️ Purdue Model</button>
-        <button class="nav-btn" onclick="showPage('harden')">🛡️ Hardening</button>
-        <button class="nav-btn" onclick="showPage('about')">ℹ️ About</button>
+    <div class="header-right">
+        <div class="header-nav">
+            <button class="nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+            <button class="nav-btn" onclick="showPage('protocols',this)">Protocols</button>
+            <button class="nav-btn" onclick="showPage('purdue',this)">Purdue Model</button>
+            <button class="nav-btn" onclick="showPage('assets',this)">Asset Inventory</button>
+            <button class="nav-btn" onclick="showPage('threats',this)">Threat Intel</button>
+            <button class="nav-btn" onclick="showPage('harden',this)">Hardening</button>
+            <button class="nav-btn" onclick="showPage('risk',this)">Risk Matrix</button>
+        </div>
+        <div class="user-badge" id="user-badge" onclick="doLogout()">admin [logout]</div>
     </div>
 </div>
-
 <div class="container">
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- MAP PAGE -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="page active" id="page-map">
-        <div class="grid-4" style="margin-bottom:16px">
-            <div class="card"><div class="card-title">Total Exposed</div><div class="card-value" id="stat-total">0</div><div class="card-sub">ICS services internet-facing</div></div>
-            <div class="card"><div class="card-title">Countries</div><div class="card-value" id="stat-countries">0</div><div class="card-sub">with exposed ICS endpoints</div></div>
-            <div class="card"><div class="card-title">Protocols</div><div class="card-value" id="stat-protocols">0</div><div class="card-sub">ICS/SCADA protocols tracked</div></div>
-            <div class="card"><div class="card-title">Critical</div><div class="card-value risk-high" id="stat-critical">0</div><div class="card-sub">high-risk exposures</div></div>
-        </div>
 
-        <div class="protocol-bar" id="proto-bar"></div>
-
-        <div class="map-wrap"><div id="world-map"></div></div>
-
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-title">Exposure by Country</div>
-                <table class="data-table" id="country-table">
-                    <thead><tr><th>Country</th><th>Exposed</th><th>Risk</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div class="card">
-                <div class="card-title">Protocol Distribution</div>
-                <canvas id="proto-doughnut" height="280"></canvas>
+<!-- ══ DASHBOARD ══ -->
+<div class="page active" id="page-dashboard">
+    <div class="g4" style="margin-bottom:12px">
+        <div class="card"><div class="card-t">Total Exposed</div><div class="card-v" id="s-total">0</div><div class="card-s">ICS services internet-facing</div></div>
+        <div class="card"><div class="card-t">Countries</div><div class="card-v" id="s-countries">0</div><div class="card-s">with exposed ICS endpoints</div></div>
+        <div class="card"><div class="card-t">Protocols</div><div class="card-v" id="s-protocols">0</div><div class="card-s">ICS/SCADA protocols tracked</div></div>
+        <div class="card"><div class="card-t">Critical</div><div class="card-v" style="color:var(--red)" id="s-critical">0</div><div class="card-s">high-risk exposures (&gt;50)</div></div>
+    </div>
+    <div class="proto-bar" id="proto-bar"></div>
+    <div class="map-wrap"><div id="world-map"></div></div>
+    <div class="g3">
+        <div class="card">
+            <div class="card-t">Exposure by Country</div>
+            <div style="max-height:300px;overflow-y:auto">
+            <table class="dtbl" id="country-table"><thead><tr><th>Country</th><th>Count</th><th>Risk</th></tr></thead><tbody></tbody></table>
             </div>
         </div>
-    </div>
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- PROTOCOLS PAGE -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="page" id="page-protocols">
-        <div class="section-title">ICS/SCADA Protocol Reference</div>
-        <div class="grid-2" id="protocol-cards"></div>
-    </div>
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- PURDUE MODEL PAGE -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="page" id="page-purdue">
-        <div class="section-title">Purdue Enterprise Reference Architecture (IEC 62443)</div>
-        <div class="grid-12">
-            <div class="card">
-                <div class="card-title">Key Principle</div>
-                <p style="font-size:0.85rem;color:var(--text2);line-height:1.7">The Purdue Model defines zones and conduits for industrial networks. Each level has distinct security requirements. Traffic should <strong style="color:var(--amber)">never cross more than one level</strong> without passing through a security control (firewall, DMZ, data diode).</p>
-                <div style="margin-top:16px">
-                    <div class="card-title" style="margin-bottom:8px">Exposure Risk by Level</div>
-                    <canvas id="purdue-bar" height="200"></canvas>
-                </div>
-            </div>
-            <div>
-                <div class="purdue" id="purdue-diagram"></div>
-            </div>
+        <div class="card">
+            <div class="card-t">Protocol Distribution</div>
+            <div style="position:relative;height:280px"><canvas id="chart-doughnut"></canvas></div>
         </div>
-    </div>
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- HARDENING PAGE -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="page" id="page-harden">
-        <div class="section-title">ICS Hardening Checklists</div>
-        <div class="grid-3" id="checklist-grid"></div>
-    </div>
-
-    <!-- ════════════════════════════════════════════════════════ -->
-    <!-- ABOUT PAGE -->
-    <!-- ════════════════════════════════════════════════════════ -->
-    <div class="page" id="page-about">
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-title">About OpenICS-Atlas</div>
-                <p style="font-size:0.85rem;color:var(--text2);line-height:1.8">OpenICS-Atlas is an open-source tool for defenders to <strong style="color:var(--text)">visualize</strong> internet-exposed ICS/OT services, understand the <strong style="color:var(--text)">Purdue Model</strong> architecture, and generate practical <strong style="color:var(--text)">hardening checklists</strong> and firewall policies.</p>
-                <div style="margin-top:16px;font-family:var(--mono);font-size:0.78rem;color:var(--text3);line-height:2">
-                    <p>Version: <span style="color:var(--amber)">2.0.0</span></p>
-                    <p>License: <span style="color:var(--text2)">Apache-2.0</span></p>
-                    <p>Author: <span style="color:var(--text2)">Ali AlEnezi (<a href="https://github.com/SiteQ8" style="color:var(--amber)">@SiteQ8</a>)</span></p>
-                    <p>Source: <a href="https://github.com/SiteQ8/OpenICS-Atlas" style="color:var(--amber)">github.com/SiteQ8/OpenICS-Atlas</a></p>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-title">Ethics & Safety</div>
-                <p style="font-size:0.85rem;color:var(--text2);line-height:1.8">OpenICS-Atlas is strictly for <strong style="color:var(--green)">defensive education</strong>. The Shodan integration (when enabled) exposes <strong style="color:var(--text)">only aggregated statistics</strong> — no individual host IPs, banners, or identifying data are ever displayed.</p>
-                <div style="margin-top:12px;padding:12px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);font-size:0.82rem;color:var(--amber)">
-                    ⚠️ Do not use this tool to target, scan, or exploit any device. All demo data is synthetic. Real Shodan integration requires your own API key and returns aggregated counts only.
-                </div>
-                <div style="margin-top:16px;font-size:0.82rem;line-height:2">
-                    <p style="color:var(--text3)">Standards Referenced:</p>
-                    <p style="color:var(--text2)">• IEC 62443 — Industrial Automation Security</p>
-                    <p style="color:var(--text2)">• NIST SP 800-82 — Guide to ICS Security</p>
-                    <p style="color:var(--text2)">• NERC CIP — Critical Infrastructure Protection</p>
-                    <p style="color:var(--text2)">• ISA/IEC 62443-3-3 — System Security Requirements</p>
-                    <p style="color:var(--text2)">• CISA ICS-CERT — Advisories & Best Practices</p>
-                </div>
-            </div>
+        <div class="card">
+            <div class="card-t">Exposure Trend (12 Months)</div>
+            <div style="position:relative;height:280px"><canvas id="chart-trend"></canvas></div>
         </div>
     </div>
 </div>
 
-<!-- Footer -->
-<div class="footer">
-    <p>🏭 OpenICS-Atlas v2.0 — Map, simulate, and harden ICS exposure</p>
-    <p>Apache-2.0 | <a href="https://github.com/SiteQ8/OpenICS-Atlas">GitHub</a> | <a href="https://github.com/SiteQ8">@SiteQ8</a> — Ali AlEnezi 🇰🇼</p>
-    <p style="margin-top:6px;opacity:0.5">For defensive education only. All demo data is synthetic.</p>
+<!-- ══ PROTOCOLS ══ -->
+<div class="page" id="page-protocols">
+    <div class="sect">ICS/SCADA Protocol Reference</div>
+    <div class="g2" id="protocol-cards"></div>
 </div>
+
+<!-- ══ PURDUE ══ -->
+<div class="page" id="page-purdue">
+    <div class="sect">Purdue Enterprise Reference Architecture (IEC 62443)</div>
+    <div class="g12">
+        <div class="card">
+            <div class="card-t">Risk by Purdue Level</div>
+            <div style="position:relative;height:280px"><canvas id="chart-purdue"></canvas></div>
+        </div>
+        <div id="purdue-diagram"></div>
+    </div>
+</div>
+
+<!-- ══ ASSET INVENTORY ══ -->
+<div class="page" id="page-assets">
+    <div class="sect">ICS Asset Inventory (Demo Data)</div>
+    <div class="g4" style="margin-bottom:12px">
+        <div class="card"><div class="card-t">Total Assets</div><div class="card-v" id="a-total">0</div></div>
+        <div class="card"><div class="card-t">Online</div><div class="card-v" style="color:var(--green)" id="a-online">0</div></div>
+        <div class="card"><div class="card-t">Vulnerable</div><div class="card-v" style="color:var(--red)" id="a-vuln">0</div></div>
+        <div class="card"><div class="card-t">Unpatched</div><div class="card-v" style="color:var(--amber)" id="a-unpatch">0</div></div>
+    </div>
+    <div class="card">
+        <div class="card-t">Registered Assets</div>
+        <div style="overflow-x:auto"><table class="dtbl" id="asset-table">
+            <thead><tr><th>Asset ID</th><th>Name</th><th>Type</th><th>Vendor</th><th>Protocol</th><th>Purdue</th><th>Status</th><th>Last Seen</th></tr></thead>
+            <tbody></tbody>
+        </table></div>
+    </div>
+</div>
+
+<!-- ══ THREAT INTEL ══ -->
+<div class="page" id="page-threats">
+    <div class="sect">ICS Threat Intelligence Feed (Simulated)</div>
+    <div class="g4" style="margin-bottom:12px">
+        <div class="card"><div class="card-t">Active Advisories</div><div class="card-v" id="t-active">0</div></div>
+        <div class="card"><div class="card-t">Critical CVEs</div><div class="card-v" style="color:var(--red)" id="t-crit">0</div></div>
+        <div class="card"><div class="card-t">APT Campaigns</div><div class="card-v" style="color:var(--amber)" id="t-apt">0</div></div>
+        <div class="card"><div class="card-t">Last Updated</div><div class="card-v" style="font-size:1rem" id="t-updated">—</div></div>
+    </div>
+    <div class="g2">
+        <div class="card">
+            <div class="card-t">Recent ICS-CERT Advisories</div>
+            <div style="max-height:400px;overflow-y:auto"><table class="dtbl" id="advisory-table">
+                <thead><tr><th>ID</th><th>Title</th><th>Severity</th><th>Date</th></tr></thead>
+                <tbody></tbody>
+            </table></div>
+        </div>
+        <div class="card">
+            <div class="card-t">Known ICS APT Groups</div>
+            <div style="max-height:400px;overflow-y:auto"><table class="dtbl" id="apt-table">
+                <thead><tr><th>Group</th><th>Targets</th><th>Techniques</th><th>Active</th></tr></thead>
+                <tbody></tbody>
+            </table></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ HARDENING ══ -->
+<div class="page" id="page-harden">
+    <div class="sect">ICS Hardening Checklists</div>
+    <div class="g3" id="checklist-grid"></div>
+</div>
+
+<!-- ══ RISK MATRIX ══ -->
+<div class="page" id="page-risk">
+    <div class="sect">ICS Risk Assessment Matrix</div>
+    <div class="g2">
+        <div class="card">
+            <div class="card-t">Likelihood vs Impact</div>
+            <div id="risk-matrix"></div>
+        </div>
+        <div class="card">
+            <div class="card-t">Risk Distribution</div>
+            <div style="position:relative;height:300px"><canvas id="chart-risk"></canvas></div>
+        </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+        <div class="card-t">Risk Register</div>
+        <div style="overflow-x:auto"><table class="dtbl" id="risk-register">
+            <thead><tr><th>Risk ID</th><th>Description</th><th>Likelihood</th><th>Impact</th><th>Rating</th><th>Mitigation</th></tr></thead>
+            <tbody></tbody>
+        </table></div>
+    </div>
+</div>
+
+</div>
+<div class="footer">OpenICS-Atlas v2.5 — ICS/OT Exposure Intelligence — Apache-2.0 | <a href="https://github.com/SiteQ8/OpenICS-Atlas">GitHub</a> | <a href="https://github.com/SiteQ8">@SiteQ8</a> — Ali AlEnezi</div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════════════════════
-// ICS PROTOCOL DATABASE — 8 protocols with exposure data
-// ══════════════════════════════════════════════════════════════
-const PROTOCOLS = [
-    {id:'modbus',name:'Modbus/TCP',port:502,risk:'critical',
-     desc:'Most widely deployed ICS protocol. Used in PLCs, RTUs, and SCADA systems across energy, water, and manufacturing. No built-in authentication or encryption.',
-     vendors:['Schneider Electric','Siemens','ABB','Honeywell','Allen-Bradley'],
-     cves:['CVE-2022-45788','CVE-2021-22779','CVE-2020-7559'],
-     mitigations:['Segment from IT network','Use Modbus/TCP security extensions','Monitor for anomalous function codes','Block port 502 at perimeter']},
-    {id:'dnp3',name:'DNP3',port:20000,risk:'critical',
-     desc:'Distributed Network Protocol — primary protocol for electric utilities and water systems. Supports unsolicited responses and time sync. SA (Secure Authentication) v5 adds HMAC.',
-     vendors:['GE','SEL','Honeywell','Emerson','Triangle MicroWorks'],
-     cves:['CVE-2023-3595','CVE-2022-0435','CVE-2021-27432'],
-     mitigations:['Enable DNP3 Secure Authentication v5','Use encrypted tunnels (VPN/TLS)','Implement allowlisting','Monitor for broadcast storms']},
-    {id:'iec104',name:'IEC 60870-5-104',port:2404,risk:'high',
-     desc:'Telecontrol companion standard used in European and Asian power grids. TCP-based extension of IEC 101. Used for SCADA communication between control centers and substations.',
-     vendors:['ABB','Siemens','Alstom','Schneider Electric','NARI'],
-     cves:['CVE-2022-2003','CVE-2021-32926'],
-     mitigations:['Deploy IEC 62351 security','Use data diodes for telemetry','Segment substation networks','Monitor for spoofed ASDU addresses']},
-    {id:'mms',name:'MMS / IEC 61850',port:102,risk:'high',
-     desc:'Manufacturing Message Specification — used in electrical substations for GOOSE, SV, and MMS services. IEC 61850 standardizes substation automation communication.',
-     vendors:['ABB','Siemens','GE','Hitachi Energy','SEL'],
-     cves:['CVE-2023-26059','CVE-2022-29922'],
-     mitigations:['Implement IEC 62351-6 for GOOSE/SV','Use VLAN segmentation','Deploy process bus firewalls','Monitor multicast traffic']},
-    {id:'enetip',name:'EtherNet/IP',port:44818,risk:'high',
-     desc:'Industrial Ethernet protocol by ODVA, widely used in manufacturing (CIP over TCP/UDP). Common in Rockwell/Allen-Bradley environments.',
-     vendors:['Rockwell Automation','Allen-Bradley','Omron','Keyence','Molex'],
-     cves:['CVE-2023-3596','CVE-2022-1159','CVE-2021-22681'],
-     mitigations:['Enable CIP Security (TLS/DTLS)','Restrict implicit messaging','Segment cell/area zones','Block port 44818 at perimeter']},
-    {id:'opcua',name:'OPC UA',port:4840,risk:'medium',
-     desc:'Open Platform Communications Unified Architecture — modern, secure-by-design protocol for industrial interoperability. Supports encryption, authentication, and authorization natively.',
-     vendors:['Siemens','Beckhoff','B&R','Kepware','Unified Automation'],
-     cves:['CVE-2022-29862','CVE-2021-45117'],
-     mitigations:['Enforce certificate-based auth','Disable anonymous access','Use SecurityPolicy Basic256Sha256+','Audit session connections']},
-    {id:'bacnet',name:'BACnet/IP',port:47808,risk:'medium',
-     desc:'Building Automation and Control Network — standard protocol for HVAC, lighting, fire, and access control in smart buildings. UDP-based, often no authentication.',
-     vendors:['Johnson Controls','Honeywell','Schneider Electric','Siemens','Tridium'],
-     cves:['CVE-2023-0955','CVE-2022-4048'],
-     mitigations:['Enable BACnet/SC (Secure Connect)','Segment BMS from IT','Block UDP 47808 at perimeter','Disable Who-Is broadcasts externally']},
-    {id:'s7comm',name:'S7comm / S7comm+',port:102,risk:'critical',
-     desc:'Siemens proprietary protocol for S7-300/400/1200/1500 PLCs. S7comm has no authentication. S7comm+ (TIA Portal v13+) adds TLS but is not always enabled.',
-     vendors:['Siemens'],
-     cves:['CVE-2019-13945','CVE-2022-38465','CVE-2023-28489'],
-     mitigations:['Upgrade to S7comm+ with TLS','Enable PLC access protection','Segment Step 7 engineering stations','Monitor for unauthorized read/write']},
+// ═══ LOGIN ═══
+function fillDemo(){document.getElementById('login-user').value='admin';document.getElementById('login-pass').value='OpenICS2025'}
+function doLogin(){
+    const u=document.getElementById('login-user').value,p=document.getElementById('login-pass').value;
+    if(u==='admin'&&p==='OpenICS2025'){
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app').classList.add('visible');
+        document.getElementById('user-badge').textContent=u+' [logout]';
+        initApp();toast('Signed in as '+u+' — demo mode active');
+    }else if(u==='analyst'&&p==='ICS@Secure'){
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app').classList.add('visible');
+        document.getElementById('user-badge').textContent=u+' [logout]';
+        initApp();toast('Signed in as '+u+' — read-only mode');
+    }else{document.getElementById('login-error').textContent=u||p?'Invalid credentials. Use demo account below.':'Please enter username and password.'}
+}
+function doLogout(){document.getElementById('login-screen').classList.remove('hidden');document.getElementById('app').classList.remove('visible');document.getElementById('login-user').value='';document.getElementById('login-pass').value='';document.getElementById('login-error').textContent=''}
+document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+document.getElementById('login-user').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-pass').focus()});
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
+
+// ═══ DATA ═══
+const PROTOCOLS=[
+{id:'modbus',name:'Modbus/TCP',port:502,risk:'critical',desc:'Most widely deployed ICS protocol. No built-in authentication or encryption. Used in PLCs, RTUs, SCADA across energy, water, manufacturing.',vendors:['Schneider Electric','Siemens','ABB','Honeywell','Allen-Bradley'],cves:['CVE-2022-45788','CVE-2021-22779','CVE-2020-7559'],mitigations:['Segment from IT network','Use Modbus/TCP security extensions','Monitor anomalous function codes','Block port 502 at perimeter']},
+{id:'dnp3',name:'DNP3',port:20000,risk:'critical',desc:'Distributed Network Protocol for electric utilities and water systems. SA v5 adds HMAC authentication.',vendors:['GE','SEL','Honeywell','Emerson','Triangle MicroWorks'],cves:['CVE-2023-3595','CVE-2022-0435','CVE-2021-27432'],mitigations:['Enable DNP3 Secure Authentication v5','Use encrypted tunnels','Implement allowlisting','Monitor broadcast storms']},
+{id:'iec104',name:'IEC 60870-5-104',port:2404,risk:'high',desc:'Telecontrol standard for European/Asian power grids. TCP-based SCADA communication between control centers and substations.',vendors:['ABB','Siemens','Alstom','Schneider Electric','NARI'],cves:['CVE-2022-2003','CVE-2021-32926'],mitigations:['Deploy IEC 62351 security','Use data diodes','Segment substation networks','Monitor spoofed ASDUs']},
+{id:'mms',name:'MMS / IEC 61850',port:102,risk:'high',desc:'Manufacturing Message Specification for substation automation — GOOSE, SV, MMS services.',vendors:['ABB','Siemens','GE','Hitachi Energy','SEL'],cves:['CVE-2023-26059','CVE-2022-29922'],mitigations:['Implement IEC 62351-6','VLAN segmentation','Process bus firewalls','Monitor multicast']},
+{id:'enetip',name:'EtherNet/IP',port:44818,risk:'high',desc:'Industrial Ethernet by ODVA. CIP over TCP/UDP. Common in Rockwell/Allen-Bradley manufacturing environments.',vendors:['Rockwell Automation','Allen-Bradley','Omron','Keyence','Molex'],cves:['CVE-2023-3596','CVE-2022-1159','CVE-2021-22681'],mitigations:['Enable CIP Security (TLS/DTLS)','Restrict implicit messaging','Segment cell/area zones','Block port 44818']},
+{id:'opcua',name:'OPC UA',port:4840,risk:'medium',desc:'Secure-by-design protocol for industrial interoperability. Native encryption, authentication, authorization.',vendors:['Siemens','Beckhoff','B&R','Kepware','Unified Automation'],cves:['CVE-2022-29862','CVE-2021-45117'],mitigations:['Enforce certificate-based auth','Disable anonymous access','Use Basic256Sha256+','Audit connections']},
+{id:'bacnet',name:'BACnet/IP',port:47808,risk:'medium',desc:'Building automation — HVAC, lighting, fire, access control. UDP-based, often no authentication.',vendors:['Johnson Controls','Honeywell','Schneider Electric','Siemens','Tridium'],cves:['CVE-2023-0955','CVE-2022-4048'],mitigations:['Enable BACnet/SC','Segment BMS from IT','Block UDP 47808','Disable external Who-Is']},
+{id:'s7comm',name:'S7comm / S7comm+',port:102,risk:'critical',desc:'Siemens proprietary for S7 PLCs. S7comm has no authentication. S7comm+ adds TLS but not always enabled.',vendors:['Siemens'],cves:['CVE-2019-13945','CVE-2022-38465','CVE-2023-28489'],mitigations:['Upgrade to S7comm+ with TLS','Enable PLC access protection','Segment engineering stations','Monitor unauthorized read/write']},
 ];
 
-// Exposure data per protocol per country (synthetic demo data)
-const EXPOSURE = {
-    modbus:{US:320,CN:180,DE:88,IN:70,FR:60,BR:55,GB:45,CA:44,JP:40,RU:35,AU:21,IT:18,KR:16,SA:13,MX:12,AE:9,TR:8,KW:6,PL:5,ZA:4},
-    dnp3:{US:90,CA:22,BR:8,AU:7,GB:6,JP:5,DE:5,MX:4,AE:2,KW:1,IN:3,ZA:2},
-    iec104:{DE:52,FR:45,CN:38,IT:30,ES:28,GB:22,PL:18,SE:15,CZ:12,RO:10,AT:8,NO:7,CH:6,JP:5,IN:4},
-    mms:{DE:24,FR:30,NL:6,SE:7,NO:5,US:12,CN:18,JP:10,GB:8,IT:6,FI:4,DK:3},
-    enetip:{US:210,CN:95,DE:40,IN:35,CA:30,JP:28,BR:25,GB:22,MX:18,KR:15,IT:12,FR:10,AU:8},
-    opcua:{DE:85,US:62,CN:45,JP:30,FR:22,GB:18,IT:15,NL:12,KR:10,SE:8,AU:6,CA:5,IN:4},
-    bacnet:{US:180,CA:35,DE:28,GB:25,AU:22,JP:18,FR:15,CN:12,KR:10,AE:8,SG:6,SA:4,KW:3},
-    s7comm:{DE:120,CN:85,US:42,IT:28,FR:22,PL:18,RU:15,ES:12,GB:10,TR:8,IN:6,BR:5,CZ:4},
+const EXPOSURE={
+modbus:{US:320,CN:180,DE:88,IN:70,FR:60,BR:55,GB:45,CA:44,JP:40,RU:35,AU:21,IT:18,KR:16,SA:13,MX:12,AE:9,TR:8,KW:6,PL:5,ZA:4},
+dnp3:{US:90,CA:22,BR:8,AU:7,GB:6,JP:5,DE:5,MX:4,AE:2,KW:1,IN:3,ZA:2},
+iec104:{DE:52,FR:45,CN:38,IT:30,ES:28,GB:22,PL:18,SE:15,CZ:12,RO:10,AT:8,NO:7,CH:6,JP:5,IN:4},
+mms:{DE:24,FR:30,NL:6,SE:7,NO:5,US:12,CN:18,JP:10,GB:8,IT:6,FI:4,DK:3},
+enetip:{US:210,CN:95,DE:40,IN:35,CA:30,JP:28,BR:25,GB:22,MX:18,KR:15,IT:12,FR:10,AU:8},
+opcua:{DE:85,US:62,CN:45,JP:30,FR:22,GB:18,IT:15,NL:12,KR:10,SE:8,AU:6,CA:5,IN:4},
+bacnet:{US:180,CA:35,DE:28,GB:25,AU:22,JP:18,FR:15,CN:12,KR:10,AE:8,SG:6,SA:4,KW:3},
+s7comm:{DE:120,CN:85,US:42,IT:28,FR:22,PL:18,RU:15,ES:12,GB:10,TR:8,IN:6,BR:5,CZ:4},
 };
 
-// Country coordinates for map markers
-const COORDS={US:[39.8,-98.6],CN:[35.9,104.2],DE:[51.2,10.4],IN:[20.6,78.9],FR:[46.2,2.2],BR:[-14.2,-51.9],GB:[55.4,-3.4],CA:[56.1,-106.3],JP:[36.2,138.3],RU:[61.5,105.3],AU:[-25.3,133.8],IT:[41.9,12.5],KR:[35.9,127.8],SA:[23.9,45.1],MX:[23.6,-102.6],AE:[23.4,53.8],TR:[38.9,35.2],KW:[29.3,47.9],PL:[51.9,19.1],ZA:[-30.6,22.9],ES:[40.5,-3.7],SE:[60.1,18.6],NL:[52.1,5.3],CZ:[49.8,15.5],RO:[45.9,25.0],AT:[47.5,14.6],NO:[60.5,8.5],CH:[46.8,8.2],FI:[61.9,25.7],DK:[56.3,9.5],SG:[1.4,103.8]};
+const COORDS={US:[39.8,-98.6],CN:[35.9,104.2],DE:[51.2,10.4],IN:[20.6,78.9],FR:[46.2,2.2],BR:[-14.2,-51.9],GB:[55.4,-3.4],CA:[56.1,-106.3],JP:[36.2,138.3],RU:[61.5,105.3],AU:[-25.3,133.8],IT:[41.9,12.5],KR:[35.9,127.8],SA:[23.9,45.1],MX:[23.6,-102.6],AE:[23.4,53.8],TR:[38.9,35.2],KW:[29.3,47.9],PL:[51.9,19.1],ZA:[-30.6,22.9],ES:[40.5,-3.7],SE:[60.1,18.6],NL:[52.1,5.3],CZ:[49.8,15.5],RO:[45.9,25],AT:[47.5,14.6],NO:[60.5,8.5],CH:[46.8,8.2],FI:[61.9,25.7],DK:[56.3,9.5],SG:[1.4,103.8]};
+const CN={US:'United States',CN:'China',DE:'Germany',IN:'India',FR:'France',BR:'Brazil',GB:'United Kingdom',CA:'Canada',JP:'Japan',RU:'Russia',AU:'Australia',IT:'Italy',KR:'South Korea',SA:'Saudi Arabia',MX:'Mexico',AE:'UAE',TR:'Turkey',KW:'Kuwait',PL:'Poland',ZA:'South Africa',ES:'Spain',SE:'Sweden',NL:'Netherlands',CZ:'Czech Republic',RO:'Romania',AT:'Austria',NO:'Norway',CH:'Switzerland',FI:'Finland',DK:'Denmark',SG:'Singapore'};
 
-const COUNTRY_NAMES={US:'United States',CN:'China',DE:'Germany',IN:'India',FR:'France',BR:'Brazil',GB:'United Kingdom',CA:'Canada',JP:'Japan',RU:'Russia',AU:'Australia',IT:'Italy',KR:'South Korea',SA:'Saudi Arabia',MX:'Mexico',AE:'UAE',TR:'Turkey',KW:'Kuwait',PL:'Poland',ZA:'South Africa',ES:'Spain',SE:'Sweden',NL:'Netherlands',CZ:'Czech Republic',RO:'Romania',AT:'Austria',NO:'Norway',CH:'Switzerland',FI:'Finland',DK:'Denmark',SG:'Singapore'};
-
-// Purdue Model levels
-const PURDUE = [
-    {level:5,name:'Enterprise Network',css:'purdue-l5',desc:'Corporate IT — ERP, email, internet access',tech:'SAP, Oracle, Active Directory, DNS, DHCP',risk:15},
-    {level:4,name:'Business Planning',css:'purdue-l4',desc:'Site business systems and logistics — connects IT to OT',tech:'Historian server, MES gateway, patch management',risk:25},
-    {level:'3.5',name:'ICS DMZ',css:'purdue-l35',desc:'Demilitarized zone — data diodes, jump hosts, bastion servers',tech:'Data diodes, reverse proxies, OPC UA aggregators',risk:10},
-    {level:3,name:'Site Operations',css:'purdue-l3',desc:'Operations management — HMI, SCADA servers, engineering workstations',tech:'SCADA servers, Historian, HMI, engineering stations',risk:40},
-    {level:2,name:'Area Supervisory',css:'purdue-l2',desc:'Area supervisory control — local HMI, area PLCs',tech:'HMI panels, area controllers, OPC servers',risk:55},
-    {level:1,name:'Basic Control',css:'purdue-l1',desc:'PLCs, RTUs, DCS controllers — direct process control',tech:'PLCs (S7-1500, ControlLogix), RTUs, DCS, VFDs',risk:80},
-    {level:0,name:'Physical Process',css:'purdue-l0',desc:'Field devices — sensors, actuators, valves, motors',tech:'I/O modules, sensors, actuators, field instruments',risk:90},
+const PURDUE=[
+{level:5,name:'Enterprise Network',css:'pl5',desc:'Corporate IT — ERP, email, internet',tech:'SAP, Oracle, AD, DNS',risk:15},
+{level:4,name:'Business Planning',css:'pl4',desc:'Site business — connects IT to OT',tech:'Historian, MES gateway, patching',risk:25},
+{level:'3.5',name:'ICS DMZ',css:'pl35',desc:'Data diodes, jump hosts, bastions',tech:'Diodes, reverse proxies, OPC UA agg',risk:10},
+{level:3,name:'Site Operations',css:'pl3',desc:'HMI, SCADA servers, engineering',tech:'SCADA, Historian, HMI, eng stations',risk:40},
+{level:2,name:'Area Supervisory',css:'pl2',desc:'Local HMI, area PLCs',tech:'HMI panels, area controllers, OPC',risk:55},
+{level:1,name:'Basic Control',css:'pl1',desc:'PLCs, RTUs, DCS — direct control',tech:'S7-1500, ControlLogix, RTUs, VFDs',risk:80},
+{level:0,name:'Physical Process',css:'pl0',desc:'Sensors, actuators, valves, motors',tech:'I/O modules, instruments, actuators',risk:90},
 ];
 
-// Hardening checklists
-const CHECKLISTS = [
-    {title:'Network Segmentation',icon:'🔒',standard:'IEC 62443-3-3',items:[
-        'Implement zones and conduits per IEC 62443','Deploy firewalls between each Purdue level','Use data diodes for L3→L4 telemetry','Disable inter-VLAN routing where not needed',
-        'Block all inbound from enterprise to L0-L2','Configure stateful inspection for OT protocols','Implement network access control (802.1X)','Deploy IDS/IPS with OT protocol signatures',
-        'Segment safety systems (SIS) on dedicated network','Log all zone crossing traffic','Block USB/removable media at network level','Implement wireless segmentation for industrial WiFi']},
-    {title:'PLC/RTU Hardening',icon:'⚙️',standard:'NIST 800-82',items:[
-        'Change default credentials on all controllers','Disable unused communication ports and services','Enable firmware integrity checking','Implement PLC access protection (password/keyswitch)',
-        'Restrict engineering access to jump hosts only','Enable audit logging where supported','Disable HTTP/Telnet — use HTTPS/SSH','Verify firmware against vendor checksums',
-        'Implement program change detection','Set CPU to RUN-PROTECTED mode','Configure watchdog timers','Document all PLC programs and changes']},
-    {title:'Remote Access',icon:'🔑',standard:'NERC CIP-005',items:[
-        'Use multi-factor authentication for all remote access','Route through dedicated jump host in ICS DMZ','Enable session recording and audit logging','Set maximum session timeout (15 min idle)',
-        'Use certificate-based VPN (no split tunneling)','Restrict remote access to named accounts only','Monitor for concurrent sessions','Disable file transfer unless explicitly approved',
-        'Conduct quarterly access review','Implement just-in-time access provisioning','Block remote access from high-risk geolocations','Test break-glass procedures annually']},
-    {title:'Monitoring & Detection',icon:'📡',standard:'MITRE ATT&CK for ICS',items:[
-        'Deploy OT-aware NIDS (Claroty, Dragos, Nozomi)','Monitor Modbus function codes for anomalies','Alert on unauthorized PLC program changes','Baseline normal traffic patterns per zone',
-        'Integrate OT alerts with SOC/SIEM','Monitor for reconnaissance (port scans, ARP sweeps)','Detect unauthorized engineering connections','Alert on firmware update attempts',
-        'Monitor serial-to-Ethernet converters','Track asset inventory changes automatically','Correlate IT and OT events in single timeline','Conduct threat hunting on OT network quarterly']},
-    {title:'Patch Management',icon:'🔄',standard:'IEC 62443-2-3',items:[
-        'Maintain OT asset inventory with firmware versions','Subscribe to vendor security advisories','Test patches in staging/mirror environment first','Schedule maintenance windows with operations',
-        'Use WSUS/SCCM isolated instance for OT','Compensate with virtual patching when delayed','Document all patch exceptions and risk acceptance','Verify patch integrity before deployment',
-        'Maintain rollback procedures','Track mean-time-to-patch for OT vs IT','Coordinate with safety system vendor before SIS patches','Review patch applicability against running config']},
-    {title:'Incident Response',icon:'🚨',standard:'NIST SP 800-61',items:[
-        'Develop OT-specific IR playbook','Define escalation path: SOC → OT engineer → Plant manager','Pre-position forensic tools on isolated media','Maintain offline backups of all PLC programs',
-        'Practice tabletop exercises quarterly','Establish manual override procedures for safety','Coordinate with ICS-CERT / CISA for major incidents','Preserve evidence per chain-of-custody',
-        'Test restoration from backups annually','Document lessons learned after each incident','Maintain out-of-band communication channels','Define criteria for safe process shutdown']},
+const CHECKLISTS=[
+{title:'Network Segmentation',standard:'IEC 62443-3-3',items:['Implement zones and conduits per IEC 62443','Deploy firewalls between Purdue levels','Use data diodes for L3 to L4 telemetry','Disable inter-VLAN routing where not needed','Block inbound from enterprise to L0-L2','Stateful inspection for OT protocols','Network access control (802.1X)','IDS/IPS with OT protocol signatures','Segment safety systems (SIS)','Log all zone crossing traffic','Block USB/removable media','Wireless segmentation for industrial WiFi']},
+{title:'PLC/RTU Hardening',standard:'NIST 800-82',items:['Change default credentials on all controllers','Disable unused communication ports','Enable firmware integrity checking','PLC access protection (password/keyswitch)','Restrict engineering to jump hosts only','Enable audit logging','Disable HTTP/Telnet — use HTTPS/SSH','Verify firmware checksums','Program change detection','CPU to RUN-PROTECTED mode','Configure watchdog timers','Document all PLC programs']},
+{title:'Remote Access',standard:'NERC CIP-005',items:['Multi-factor auth for all remote access','Route through jump host in ICS DMZ','Session recording and audit logging','Max session timeout (15 min idle)','Certificate-based VPN (no split tunnel)','Named accounts only','Monitor concurrent sessions','Disable file transfer unless approved','Quarterly access review','Just-in-time access provisioning','Block high-risk geolocations','Test break-glass procedures annually']},
+{title:'Monitoring and Detection',standard:'MITRE ATT&CK ICS',items:['OT-aware NIDS (Claroty, Dragos, Nozomi)','Monitor Modbus function code anomalies','Alert unauthorized PLC program changes','Baseline normal traffic per zone','Integrate OT alerts with SOC/SIEM','Monitor recon (port scans, ARP sweeps)','Detect unauthorized engineering connections','Alert firmware update attempts','Monitor serial-to-Ethernet converters','Track asset inventory changes','Correlate IT and OT events','Quarterly OT threat hunting']},
+{title:'Patch Management',standard:'IEC 62443-2-3',items:['OT asset inventory with firmware versions','Subscribe to vendor security advisories','Test patches in staging first','Schedule maintenance windows','Isolated WSUS/SCCM for OT','Virtual patching when delayed','Document patch exceptions','Verify patch integrity','Maintain rollback procedures','Track mean-time-to-patch','Coordinate with SIS vendor','Review applicability against config']},
+{title:'Incident Response',standard:'NIST SP 800-61',items:['OT-specific IR playbook','Escalation: SOC > OT engineer > Plant mgr','Pre-position forensic tools (isolated)','Offline backups of all PLC programs','Quarterly tabletop exercises','Manual override procedures for safety','Coordinate with ICS-CERT/CISA','Preserve evidence per chain-of-custody','Annual backup restoration test','Document lessons learned','Out-of-band communication channels','Define safe process shutdown criteria']},
 ];
 
-// ══════════════════════════════════════════════════════════════
-// APP LOGIC
-// ══════════════════════════════════════════════════════════════
-let activeProto = 'modbus';
-let map = null;
-let markers = [];
-let doughnutChart = null;
+// Demo assets
+const ASSETS=[
+{id:'PLC-001',name:'Main Process Controller',type:'PLC',vendor:'Siemens S7-1500',proto:'S7comm+',purdue:'L1',status:'online',vuln:false,patched:true,seen:'2026-03-08'},
+{id:'PLC-002',name:'Water Treatment PLC',type:'PLC',vendor:'Allen-Bradley',proto:'EtherNet/IP',purdue:'L1',status:'online',vuln:true,patched:false,seen:'2026-03-09'},
+{id:'RTU-001',name:'Remote Terminal Unit A',type:'RTU',vendor:'GE',proto:'DNP3',purdue:'L1',status:'online',vuln:false,patched:true,seen:'2026-03-09'},
+{id:'HMI-001',name:'Operator Workstation 1',type:'HMI',vendor:'Wonderware',proto:'OPC UA',purdue:'L2',status:'online',vuln:false,patched:true,seen:'2026-03-09'},
+{id:'HMI-002',name:'Operator Workstation 2',type:'HMI',vendor:'Ignition',proto:'OPC UA',purdue:'L2',status:'online',vuln:true,patched:false,seen:'2026-03-07'},
+{id:'EWS-001',name:'Engineering Station',type:'EWS',vendor:'Siemens TIA Portal',proto:'S7comm+',purdue:'L3',status:'online',vuln:false,patched:true,seen:'2026-03-09'},
+{id:'SRV-001',name:'SCADA Server',type:'Server',vendor:'AVEVA',proto:'Modbus/TCP',purdue:'L3',status:'online',vuln:true,patched:false,seen:'2026-03-09'},
+{id:'SRV-002',name:'Historian Server',type:'Server',vendor:'OSIsoft PI',proto:'OPC UA',purdue:'L3.5',status:'online',vuln:false,patched:true,seen:'2026-03-09'},
+{id:'FW-001',name:'OT Firewall',type:'Firewall',vendor:'Palo Alto',proto:'—',purdue:'L3.5',status:'online',vuln:false,patched:true,seen:'2026-03-09'},
+{id:'SW-001',name:'Industrial Switch',type:'Switch',vendor:'Hirschmann',proto:'—',purdue:'L2',status:'online',vuln:false,patched:false,seen:'2026-03-08'},
+{id:'BMS-001',name:'Building Management',type:'BMS',vendor:'Johnson Controls',proto:'BACnet/IP',purdue:'L2',status:'online',vuln:true,patched:false,seen:'2026-03-06'},
+{id:'RTU-002',name:'Substation RTU',type:'RTU',vendor:'ABB',proto:'IEC 104',purdue:'L1',status:'offline',vuln:false,patched:true,seen:'2026-03-01'},
+];
 
-function showPage(name) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-    event.target.classList.add('active');
-    if (name === 'map' && map) map.invalidateSize();
+// Demo advisories
+const ADVISORIES=[
+{id:'ICSA-26-045',title:'Siemens S7-1500 CPU Denial of Service',sev:'critical',date:'2026-02-14'},
+{id:'ICSA-26-038',title:'Schneider Electric Modicon Authentication Bypass',sev:'critical',date:'2026-02-07'},
+{id:'ICSA-26-031',title:'Rockwell ControlLogix Improper Input Validation',sev:'high',date:'2026-01-31'},
+{id:'ICSA-26-024',title:'ABB RETU500 Series Buffer Overflow',sev:'high',date:'2026-01-24'},
+{id:'ICSA-26-017',title:'GE UR Series Relay Hardcoded Credentials',sev:'critical',date:'2026-01-17'},
+{id:'ICSA-26-010',title:'Honeywell Experion PKS Command Injection',sev:'high',date:'2026-01-10'},
+{id:'ICSA-25-360',title:'Johnson Controls Metasys BACnet Overflow',sev:'medium',date:'2025-12-26'},
+{id:'ICSA-25-350',title:'Hitachi Energy MMS Stack Crash',sev:'medium',date:'2025-12-16'},
+];
+
+const APTS=[
+{name:'CHERNOVITE',targets:'Electric grid, natural gas',tech:'PIPEDREAM/INCONTROLLER, OPC UA abuse',active:true},
+{name:'ELECTRUM',targets:'Electric utilities (Ukraine)',tech:'CRASHOVERRIDE/Industroyer, IEC 104',active:true},
+{name:'XENOTIME',targets:'Oil and gas, safety systems',tech:'TRITON/TRISIS targeting SIS',active:true},
+{name:'KAMACITE',targets:'Electric utilities (Europe)',tech:'BlackEnergy, spear-phishing, OT pivot',active:false},
+{name:'SANDWORM',targets:'Critical infrastructure, worldwide',tech:'NotPetya, Industroyer2, wiper malware',active:true},
+{name:'VANADINITE',targets:'Manufacturing, telecom',tech:'Supply chain compromise, RAT deployment',active:false},
+];
+
+const RISKS=[
+{id:'R-001',desc:'Unpatched PLC firmware allows remote code execution',like:4,impact:5,rating:'Critical',mit:'Apply vendor patch or virtual patching'},
+{id:'R-002',desc:'SMBv1 enabled on SCADA servers',like:3,impact:4,rating:'High',mit:'Disable SMBv1, enforce SMBv3'},
+{id:'R-003',desc:'No network segmentation between IT and OT',like:4,impact:5,rating:'Critical',mit:'Implement Purdue Model zones and conduits'},
+{id:'R-004',desc:'Default credentials on HMI panels',like:5,impact:4,rating:'Critical',mit:'Enforce credential change policy'},
+{id:'R-005',desc:'No logging/monitoring on OT network',like:3,impact:4,rating:'High',mit:'Deploy OT-aware NIDS (Claroty/Dragos)'},
+{id:'R-006',desc:'Remote access without MFA',like:4,impact:3,rating:'High',mit:'Enforce MFA for all remote OT access'},
+{id:'R-007',desc:'BACnet services exposed to internet',like:3,impact:3,rating:'Medium',mit:'Block UDP 47808 at perimeter firewall'},
+{id:'R-008',desc:'Engineering workstation internet access',like:2,impact:4,rating:'Medium',mit:'Air-gap or strict proxy for EWS'},
+];
+
+// ═══ APP INIT ═══
+let activeProto='modbus',map=null,markers=[],charts={};
+
+function initApp(){
+    renderProtoPills();initMap();renderCountryTable();renderDoughnut();renderTrend();updateStats();
+    renderProtocolCards();renderPurdue();renderChecklists();renderAssets();renderThreats();renderRisk();
 }
 
-function selectProtocol(id) {
-    activeProto = id;
-    renderProtoPills();
-    renderMap();
-    renderCountryTable();
-    renderDoughnut();
-    updateStats();
+function showPage(name,btn){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    if(btn)btn.classList.add('active');
+    if(name==='dashboard'&&map)setTimeout(()=>map.invalidateSize(),100);
 }
 
-function renderProtoPills() {
-    document.getElementById('proto-bar').innerHTML = PROTOCOLS.map(p =>
-        `<button class="proto-pill ${p.id===activeProto?'active':''}" onclick="selectProtocol('${p.id}')">
-            ${p.name} <span class="port">:${p.port}</span>
-        </button>`
+function selectProtocol(id){activeProto=id;renderProtoPills();renderMap();renderCountryTable();updateStats()}
+
+function renderProtoPills(){
+    document.getElementById('proto-bar').innerHTML=PROTOCOLS.map(p=>
+        `<button class="pill ${p.id===activeProto?'active':''}" onclick="selectProtocol('${p.id}')">${p.name} <span class="port">:${p.port}</span></button>`
     ).join('');
 }
 
-function initMap() {
-    map = L.map('world-map',{scrollWheelZoom:true,zoomControl:true}).setView([25,20],2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        attribution:'© OpenStreetMap'
-    }).addTo(map);
+function initMap(){
+    map=L.map('world-map',{scrollWheelZoom:true,zoomControl:true}).setView([25,20],2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
     renderMap();
 }
 
-function renderMap() {
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-    const data = EXPOSURE[activeProto] || {};
-    const maxVal = Math.max(...Object.values(data), 1);
-
-    for (const [cc, count] of Object.entries(data)) {
-        if (!COORDS[cc]) continue;
-        const ratio = count / maxVal;
-        const radius = 6 + ratio * 30;
-        const color = ratio > 0.6 ? '#ff4757' : ratio > 0.3 ? '#f0a500' : '#2ed573';
-
-        const marker = L.circleMarker(COORDS[cc], {
-            radius, color, fillColor: color, fillOpacity: 0.5, weight: 1
-        }).addTo(map);
-        marker.bindPopup(`<strong>${COUNTRY_NAMES[cc]||cc}</strong><br>${activeProto.toUpperCase()}: ${count} exposed`);
-        markers.push(marker);
+function renderMap(){
+    markers.forEach(m=>map.removeLayer(m));markers=[];
+    const d=EXPOSURE[activeProto]||{},mx=Math.max(...Object.values(d),1);
+    for(const[cc,c]of Object.entries(d)){
+        if(!COORDS[cc])continue;
+        const r=c/mx,rad=6+r*28,col=r>0.6?'#ff4757':r>0.3?'#f0a500':'#2ed573';
+        const m=L.circleMarker(COORDS[cc],{radius:rad,color:col,fillColor:col,fillOpacity:0.5,weight:1}).addTo(map);
+        m.bindPopup(`<strong>${CN[cc]||cc}</strong><br>${activeProto.toUpperCase()}: ${c} exposed<br>Risk: ${r>0.6?'CRITICAL':r>0.3?'HIGH':'MEDIUM'}`);
+        markers.push(m);
     }
 }
 
-function renderCountryTable() {
-    const data = EXPOSURE[activeProto] || {};
-    const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
-    const tbody = document.querySelector('#country-table tbody');
-    tbody.innerHTML = sorted.slice(0,15).map(([cc,count]) => {
-        const risk = count > 100 ? 'critical' : count > 30 ? 'high' : count > 10 ? 'medium' : 'low';
-        return `<tr><td>${COUNTRY_NAMES[cc]||cc}</td><td>${count}</td><td><span class="badge badge-${risk}">${risk.toUpperCase()}</span></td></tr>`;
+function renderCountryTable(){
+    const d=EXPOSURE[activeProto]||{},s=Object.entries(d).sort((a,b)=>b[1]-a[1]);
+    document.querySelector('#country-table tbody').innerHTML=s.slice(0,15).map(([cc,c])=>{
+        const r=c>100?'critical':c>30?'high':c>10?'medium':'low';
+        return `<tr><td>${CN[cc]||cc}</td><td>${c}</td><td><span class="badge badge-${r}">${r.toUpperCase()}</span></td></tr>`;
     }).join('');
 }
 
-function renderDoughnut() {
-    const totals = PROTOCOLS.map(p => {
-        const data = EXPOSURE[p.id] || {};
-        return Object.values(data).reduce((a,b)=>a+b, 0);
-    });
-    const colors = ['#ff4757','#ff6348','#f0a500','#ffc940','#00d4ff','#2ed573','#7c3aed','#ec4899'];
-
-    if (doughnutChart) doughnutChart.destroy();
-    doughnutChart = new Chart(document.getElementById('proto-doughnut'), {
+function renderDoughnut(){
+    if(charts.doughnut)charts.doughnut.destroy();
+    const totals=PROTOCOLS.map(p=>Object.values(EXPOSURE[p.id]||{}).reduce((a,b)=>a+b,0));
+    charts.doughnut=new Chart(document.getElementById('chart-doughnut'),{
         type:'doughnut',
-        data:{
-            labels:PROTOCOLS.map(p=>p.name),
-            datasets:[{data:totals,backgroundColor:colors,borderWidth:0}]
-        },
-        options:{
-            responsive:true,maintainAspectRatio:false,cutout:'55%',
-            plugins:{legend:{position:'bottom',labels:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:10},padding:12}}}
-        }
+        data:{labels:PROTOCOLS.map(p=>p.name),datasets:[{data:totals,backgroundColor:['#ff4757','#ff6348','#f0a500','#ffc940','#00d4ff','#2ed573','#7c3aed','#ec4899'],borderWidth:0,hoverOffset:6}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:9},padding:8,boxWidth:10}}}}
     });
 }
 
-function updateStats() {
-    const data = EXPOSURE[activeProto] || {};
-    const total = Object.values(data).reduce((a,b)=>a+b,0);
-    const countries = Object.keys(data).length;
-    const critical = Object.values(data).filter(v=>v>50).length;
-    document.getElementById('stat-total').textContent = total.toLocaleString();
-    document.getElementById('stat-countries').textContent = countries;
-    document.getElementById('stat-protocols').textContent = PROTOCOLS.length;
-    document.getElementById('stat-critical').textContent = critical;
+function renderTrend(){
+    if(charts.trend)charts.trend.destroy();
+    const months=['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+    const modbusT=[280,295,305,312,318,325,310,308,315,320,328,335];
+    const s7T=[90,95,100,105,108,112,115,118,120,122,125,128];
+    const totalT=modbusT.map((v,i)=>v+s7T[i]+Math.floor(Math.random()*50+200));
+    charts.trend=new Chart(document.getElementById('chart-trend'),{
+        type:'line',
+        data:{labels:months,datasets:[
+            {label:'Total',data:totalT,borderColor:'#f0a500',backgroundColor:'#f0a50015',fill:true,tension:0.3,borderWidth:2,pointRadius:2},
+            {label:'Modbus',data:modbusT,borderColor:'#ff4757',backgroundColor:'transparent',tension:0.3,borderWidth:1.5,pointRadius:1.5,borderDash:[4,2]},
+            {label:'S7comm',data:s7T,borderColor:'#00d4ff',backgroundColor:'transparent',tension:0.3,borderWidth:1.5,pointRadius:1.5,borderDash:[4,2]},
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+            scales:{x:{grid:{color:'#1e2d3e'},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:9}}},y:{grid:{color:'#1e2d3e'},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:9}}}},
+            plugins:{legend:{position:'bottom',labels:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:9},padding:8,boxWidth:10}}}}
+    });
 }
 
-// Protocols page
-function renderProtocolCards() {
-    document.getElementById('protocol-cards').innerHTML = PROTOCOLS.map(p => {
-        const total = Object.values(EXPOSURE[p.id]||{}).reduce((a,b)=>a+b,0);
+function updateStats(){
+    const d=EXPOSURE[activeProto]||{},t=Object.values(d).reduce((a,b)=>a+b,0);
+    document.getElementById('s-total').textContent=t.toLocaleString();
+    document.getElementById('s-countries').textContent=Object.keys(d).length;
+    document.getElementById('s-protocols').textContent=PROTOCOLS.length;
+    document.getElementById('s-critical').textContent=Object.values(d).filter(v=>v>50).length;
+}
+
+function renderProtocolCards(){
+    document.getElementById('protocol-cards').innerHTML=PROTOCOLS.map(p=>{
+        const total=Object.values(EXPOSURE[p.id]||{}).reduce((a,b)=>a+b,0);
         return `<div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
-                <div><div class="card-title" style="margin-bottom:2px">${p.name}</div>
-                <span style="font-family:var(--mono);font-size:0.7rem;color:var(--text3)">Port ${p.port}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                <div><div class="card-t" style="margin-bottom:2px">${p.name}</div><span style="font-family:var(--mono);font-size:0.68rem;color:var(--text3)">Port ${p.port}</span></div>
                 <span class="badge badge-${p.risk}">${p.risk.toUpperCase()}</span>
             </div>
-            <p style="font-size:0.82rem;color:var(--text2);line-height:1.7;margin-bottom:12px">${p.desc}</p>
-            <div style="font-family:var(--mono);font-size:0.72rem;color:var(--text3);margin-bottom:8px">
-                <strong style="color:var(--text2)">Exposed:</strong> ${total.toLocaleString()} services globally
-            </div>
-            <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px"><strong>Vendors:</strong> ${p.vendors.join(', ')}</div>
-            <div style="font-size:0.72rem;color:var(--text3);margin-bottom:6px"><strong>Known CVEs:</strong> ${p.cves.join(', ')}</div>
-            <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-                <div style="font-size:0.72rem;color:var(--amber);font-weight:600;margin-bottom:6px">MITIGATIONS:</div>
-                ${p.mitigations.map(m=>'<div style="font-size:0.75rem;color:var(--text2);padding:3px 0">• '+m+'</div>').join('')}
-            </div>
-        </div>`;
+            <p style="font-size:0.8rem;color:var(--text2);line-height:1.65;margin-bottom:10px">${p.desc}</p>
+            <div style="font-family:var(--mono);font-size:0.7rem;color:var(--text3);margin-bottom:6px"><strong style="color:var(--text2)">Exposed:</strong> ${total.toLocaleString()} globally</div>
+            <div style="font-size:0.7rem;color:var(--text3);margin-bottom:4px"><strong>Vendors:</strong> ${p.vendors.join(', ')}</div>
+            <div style="font-size:0.7rem;color:var(--text3);margin-bottom:4px"><strong>CVEs:</strong> ${p.cves.join(', ')}</div>
+            <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+                <div style="font-size:0.68rem;color:var(--amber);font-weight:600;margin-bottom:4px">MITIGATIONS:</div>
+                ${p.mitigations.map(m=>'<div style="font-size:0.72rem;color:var(--text2);padding:2px 0">- '+m+'</div>').join('')}
+            </div></div>`;
     }).join('');
 }
 
-// Purdue diagram
-function renderPurdue() {
-    document.getElementById('purdue-diagram').innerHTML = PURDUE.map(p =>
-        `<div class="purdue-level">
-            <div class="purdue-num ${p.css}">L${p.level}</div>
-            <div class="purdue-info">
-                <div class="purdue-name">${p.name}</div>
-                <div class="purdue-desc">${p.desc}</div>
-                <div class="purdue-tech">${p.tech}</div>
-            </div>
-            <div style="text-align:right;min-width:60px">
-                <div style="font-family:var(--mono);font-size:0.9rem;font-weight:700;color:${p.risk>60?'var(--red)':p.risk>30?'var(--amber)':'var(--green)'}">${p.risk}%</div>
-                <div style="font-size:0.62rem;color:var(--text3)">risk</div>
-            </div>
-        </div>`
-    ).join('<div style="text-align:center;color:var(--text3);font-size:0.65rem;padding:2px 0">▼ firewall / DMZ ▼</div>');
+function renderPurdue(){
+    document.getElementById('purdue-diagram').innerHTML=PURDUE.map(p=>
+        `<div class="plevel"><div class="pnum ${p.css}">L${p.level}</div>
+            <div class="pinfo"><div class="pname">${p.name}</div><div class="pdesc">${p.desc}</div><div class="ptech">${p.tech}</div></div>
+            <div style="text-align:right;min-width:50px">
+                <div style="font-family:var(--mono);font-size:0.85rem;font-weight:700;color:${p.risk>60?'var(--red)':p.risk>30?'var(--amber)':'var(--green)'}">${p.risk}%</div>
+                <div style="font-size:0.6rem;color:var(--text3)">risk</div></div></div>`
+    ).join('<div style="text-align:center;color:var(--text3);font-size:0.6rem;padding:1px 0">&#9660; firewall / DMZ &#9660;</div>');
 
-    // Bar chart
-    new Chart(document.getElementById('purdue-bar'), {
+    if(charts.purdue)charts.purdue.destroy();
+    charts.purdue=new Chart(document.getElementById('chart-purdue'),{
         type:'bar',
-        data:{
-            labels:PURDUE.map(p=>'L'+p.level),
-            datasets:[{data:PURDUE.map(p=>p.risk),
-                backgroundColor:PURDUE.map(p=>p.risk>60?'#ff475780':p.risk>30?'#f0a50080':'#2ed57380'),
-                borderColor:PURDUE.map(p=>p.risk>60?'#ff4757':p.risk>30?'#f0a500':'#2ed573'),
-                borderWidth:1,borderRadius:4}]
-        },
-        options:{
-            indexAxis:'y',responsive:true,maintainAspectRatio:false,
-            scales:{x:{beginAtZero:true,max:100,grid:{color:'#1e2d3e'},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:10}}},
-                    y:{grid:{display:false},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:10}}}},
-            plugins:{legend:{display:false}}
-        }
+        data:{labels:PURDUE.map(p=>'L'+p.level),datasets:[{data:PURDUE.map(p=>p.risk),backgroundColor:PURDUE.map(p=>p.risk>60?'#ff475770':p.risk>30?'#f0a50070':'#2ed57370'),borderColor:PURDUE.map(p=>p.risk>60?'#ff4757':p.risk>30?'#f0a500':'#2ed573'),borderWidth:1,borderRadius:3}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{beginAtZero:true,max:100,grid:{color:'#1e2d3e'},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:9}}},y:{grid:{display:false},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:9}}}},plugins:{legend:{display:false}}}
     });
 }
 
-// Checklists
-function renderChecklists() {
-    document.getElementById('checklist-grid').innerHTML = CHECKLISTS.map((cl,ci) => {
-        const items = cl.items.map((item,ii) =>
-            `<div class="check-item">
-                <div class="check-box" id="ck-${ci}-${ii}" onclick="toggleCheck(this)">&nbsp;</div>
-                <div class="check-text" id="ct-${ci}-${ii}">${item}</div>
-            </div>`
-        ).join('');
+function renderChecklists(){
+    document.getElementById('checklist-grid').innerHTML=CHECKLISTS.map((cl,ci)=>{
+        const items=cl.items.map((item,ii)=>`<div class="ck"><div class="ckb" id="ck-${ci}-${ii}" onclick="toggleCk(this)"> </div><div class="ckt" id="ct-${ci}-${ii}">${item}</div></div>`).join('');
         return `<div class="card">
             <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px">
-                <div class="card-title">${cl.icon} ${cl.title}</div>
-                <span class="badge badge-medium">${cl.standard}</span>
-            </div>
-            <div style="font-size:0.72rem;color:var(--text3);margin-bottom:8px">${cl.items.length} controls</div>
-            <div class="progress"><div class="progress-fill" id="prog-${ci}" style="width:0%"></div></div>
-            <div style="font-family:var(--mono);font-size:0.68rem;color:var(--text3);margin-top:4px;text-align:right" id="prog-txt-${ci}">0/${cl.items.length}</div>
-            <div style="max-height:320px;overflow-y:auto;margin-top:8px">${items}</div>
-        </div>`;
+                <div class="card-t">${cl.title}</div><span class="badge badge-medium">${cl.standard}</span></div>
+            <div style="font-size:0.68rem;color:var(--text3);margin-bottom:6px">${cl.items.length} controls</div>
+            <div class="prog"><div class="prog-f" id="pg-${ci}" style="width:0%"></div></div>
+            <div style="font-family:var(--mono);font-size:0.62rem;color:var(--text3);margin-top:3px;text-align:right" id="pt-${ci}">0/${cl.items.length}</div>
+            <div style="max-height:300px;overflow-y:auto;margin-top:6px">${items}</div></div>`;
     }).join('');
 }
 
-function toggleCheck(el) {
-    el.classList.toggle('checked');
-    el.textContent = el.classList.contains('checked') ? '✓' : ' ';
-    const ids = el.id.split('-');
-    const textEl = document.getElementById('ct-'+ids[1]+'-'+ids[2]);
-    textEl.classList.toggle('done');
-
-    // Update progress
-    const ci = ids[1];
-    const total = CHECKLISTS[ci].items.length;
-    const checked = document.querySelectorAll(`[id^="ck-${ci}-"].checked`).length;
-    document.getElementById('prog-'+ci).style.width = (checked/total*100)+'%';
-    document.getElementById('prog-txt-'+ci).textContent = checked+'/'+total;
+function toggleCk(el){
+    el.classList.toggle('on');el.textContent=el.classList.contains('on')?'✓':' ';
+    const[_,ci,ii]=el.id.split('-');
+    document.getElementById('ct-'+ci+'-'+ii).classList.toggle('done');
+    const total=CHECKLISTS[ci].items.length,checked=document.querySelectorAll(`[id^="ck-${ci}-"].on`).length;
+    document.getElementById('pg-'+ci).style.width=(checked/total*100)+'%';
+    document.getElementById('pt-'+ci).textContent=checked+'/'+total;
 }
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-    renderProtoPills();
-    initMap();
-    renderCountryTable();
-    renderDoughnut();
-    updateStats();
-    renderProtocolCards();
-    renderPurdue();
-    renderChecklists();
-});
+function renderAssets(){
+    document.getElementById('a-total').textContent=ASSETS.length;
+    document.getElementById('a-online').textContent=ASSETS.filter(a=>a.status==='online').length;
+    document.getElementById('a-vuln').textContent=ASSETS.filter(a=>a.vuln).length;
+    document.getElementById('a-unpatch').textContent=ASSETS.filter(a=>!a.patched).length;
+    document.querySelector('#asset-table tbody').innerHTML=ASSETS.map(a=>{
+        const sc=a.status==='online'?'var(--green)':'var(--text3)';
+        const vc=a.vuln?'badge-critical':'badge-low';
+        return `<tr><td style="font-weight:600">${a.id}</td><td>${a.name}</td><td>${a.type}</td><td>${a.vendor}</td><td>${a.proto}</td><td>${a.purdue}</td><td><span style="color:${sc}">${a.status}</span></td><td>${a.seen}</td></tr>`;
+    }).join('');
+}
+
+function renderThreats(){
+    document.getElementById('t-active').textContent=ADVISORIES.length;
+    document.getElementById('t-crit').textContent=ADVISORIES.filter(a=>a.sev==='critical').length;
+    document.getElementById('t-apt').textContent=APTS.filter(a=>a.active).length;
+    document.getElementById('t-updated').textContent=new Date().toISOString().split('T')[0];
+    document.querySelector('#advisory-table tbody').innerHTML=ADVISORIES.map(a=>
+        `<tr><td style="font-weight:600">${a.id}</td><td>${a.title}</td><td><span class="badge badge-${a.sev}">${a.sev.toUpperCase()}</span></td><td>${a.date}</td></tr>`
+    ).join('');
+    document.querySelector('#apt-table tbody').innerHTML=APTS.map(a=>
+        `<tr><td style="font-weight:600;color:${a.active?'var(--red)':'var(--text3)'}">${a.name}</td><td>${a.targets}</td><td style="font-size:0.7rem">${a.tech}</td><td><span class="badge badge-${a.active?'critical':'low'}">${a.active?'ACTIVE':'INACTIVE'}</span></td></tr>`
+    ).join('');
+}
+
+function renderRisk(){
+    // Risk matrix 5x5
+    const levels=['Rare','Unlikely','Possible','Likely','Almost Certain'];
+    const impacts=['Negligible','Minor','Moderate','Major','Catastrophic'];
+    const colors=[
+        ['#2ed57330','#2ed57330','#f0a50030','#f0a50030','#ff475730'],
+        ['#2ed57330','#f0a50030','#f0a50030','#ff475730','#ff475730'],
+        ['#f0a50030','#f0a50030','#ff475730','#ff475730','#ff475760'],
+        ['#f0a50030','#ff475730','#ff475730','#ff475760','#ff475760'],
+        ['#ff475730','#ff475730','#ff475760','#ff475760','#ff475790'],
+    ];
+    let html='<table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:0.68rem">';
+    html+='<tr><td></td>';impacts.forEach(i=>html+=`<th style="padding:6px;color:var(--text2);text-align:center;font-weight:500">${i}</th>`);html+='</tr>';
+    for(let r=4;r>=0;r--){
+        html+=`<tr><th style="padding:6px;color:var(--text2);text-align:right;font-weight:500;white-space:nowrap">${levels[r]}</th>`;
+        for(let c=0;c<5;c++){
+            const risk=(r+1)*(c+1);const label=risk>=16?'C':risk>=9?'H':risk>=4?'M':'L';
+            const tc=risk>=16?'#ff4757':risk>=9?'#f0a500':risk>=4?'#3b82f6':'#2ed573';
+            html+=`<td style="padding:8px;text-align:center;background:${colors[r][c]};border-radius:3px;margin:1px"><span style="color:${tc};font-weight:700">${label}</span></td>`;
+        }html+='</tr>';
+    }html+='</table>';
+    document.getElementById('risk-matrix').innerHTML=html;
+
+    // Risk distribution chart
+    const dist={Critical:RISKS.filter(r=>r.rating==='Critical').length,High:RISKS.filter(r=>r.rating==='High').length,Medium:RISKS.filter(r=>r.rating==='Medium').length,Low:RISKS.filter(r=>r.rating==='Low').length};
+    if(charts.risk)charts.risk.destroy();
+    charts.risk=new Chart(document.getElementById('chart-risk'),{
+        type:'bar',
+        data:{labels:Object.keys(dist),datasets:[{data:Object.values(dist),backgroundColor:['#ff475780','#f0a50080','#3b82f680','#2ed57380'],borderColor:['#ff4757','#f0a500','#3b82f6','#2ed573'],borderWidth:1,borderRadius:4}]},
+        options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{display:false},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:10}}},y:{beginAtZero:true,grid:{color:'#1e2d3e'},ticks:{color:'#7a8ea0',font:{family:'IBM Plex Mono',size:10},stepSize:1}}},plugins:{legend:{display:false}}}
+    });
+
+    // Risk register
+    document.querySelector('#risk-register tbody').innerHTML=RISKS.map(r=>{
+        const rc=r.rating==='Critical'?'critical':r.rating==='High'?'high':r.rating==='Medium'?'medium':'low';
+        return `<tr><td style="font-weight:600">${r.id}</td><td>${r.desc}</td><td>${r.like}/5</td><td>${r.impact}/5</td><td><span class="badge badge-${rc}">${r.rating.toUpperCase()}</span></td><td style="font-size:0.72rem">${r.mit}</td></tr>`;
+    }).join('');
+}
 </script>
 </body>
 </html>
