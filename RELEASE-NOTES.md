@@ -1,19 +1,33 @@
-# OpenICS-Atlas v0.1.0 (MVP)
+# Release Notes
 
-**Ali AlEnezi (SiteQ8)** — Shodan-aware, vendor-neutral ICS exposure explorer.
+## v2.0.0 — March 2026
 
-## Highlights
-- **Exposure Map (demo data)** with protocol facets (Modbus/TCP, DNP3/IEC-104, MMS/IEC-61850, EtherNet/IP).
-- **Blueprints**: Purdue levels SVG + DMZ/jump-host pattern (MFA, session recording, copy/paste restrictions).
-- **Protocol pages** with baseline controls + starter exports (iptables/nftables, jump-host hardening).
-- **Offline mini-lab**: read-only Modbus mock (Docker).
+### New Features
+- **8 ICS/SCADA protocols** (was 4) — added IEC 104, OPC UA, BACnet/IP, S7comm
+- **Interactive Purdue Model** — 7 levels with risk %, technologies, zone indicators
+- **72 hardening controls** across 6 checklists with progress tracking
+- **Protocol reference cards** — port, risk, description, vendors, CVEs, mitigations
+- **Industrial SCADA aesthetic** — dark control room theme with scanline overlay
+- **Chart.js integration** — doughnut (protocol distribution) + bar (Purdue risk)
+- **Leaflet.js map** — world heatmap with dark tiles, sized/colored markers
+- **Country risk table** — top 15 countries with severity badges
+- **30+ countries** with synthetic exposure data
+- **Responsive design** — desktop, tablet, mobile
+- **GitHub Pages** — standalone `docs/index.html` (zero build required)
 
-## Shodan mode (optional)
-- `/api/shodan` designed for **aggregates only**; falls back to demo data when key is absent.
-- Add `SHODAN_API_KEY` in `.env.local`.
+### Improved
+- Expanded demo data (30+ countries, 8 protocols, richer distributions)
+- IBM Plex Mono + Sans typography (replacing system fonts)
+- Professional CVE references per protocol
+- Vendor-specific mitigation guidance
+- Standards alignment (IEC 62443, NIST 800-82, NERC CIP, MITRE ATT&CK)
 
-## Install
-```bash
-pnpm install   # or: npm install
-pnpm dev       # or: npm run dev
-# open http://localhost:3000
+## v1.0.0 — 2025
+
+### Initial Release
+- 4 ICS protocols (Modbus, DNP3, MMS, EtherNet/IP)
+- Basic world map with protocol facets
+- Purdue/DMZ/jump-host blueprints
+- iptables/nftables export templates
+- Offline Modbus mock lab
+- Next.js + Tailwind CSS framework
