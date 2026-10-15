@@ -1,3 +1,5 @@
+"use client";
+
 import ProtocolSelector from "@/components/ProtocolSelector";
 import MapView from "@/components/MapView";
 import Link from "next/link";

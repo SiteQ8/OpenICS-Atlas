@@ -1,10 +1,11 @@
 import protocols from "@/data/demo/protocols.json";
 import Link from "next/link";
 
-type Params = { params: { name: string } };
+type Params = { params: Promise<{ name: string }> };
 
-export default function ProtocolPage({ params }: Params) {
-  const meta = (protocols as any)[params.name] || null;
+export default async function ProtocolPage({ params }: Params) {
+  const { name } = await params;
+  const meta = (protocols as any)[name] || null;
   if (!meta) {
     return <div className="card">Unknown protocol.</div>;
   }
